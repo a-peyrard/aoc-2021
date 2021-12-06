@@ -1,6 +1,8 @@
-from typing import List, TypeVar
+from typing import List, TypeVar, ClassVar
 
 T = TypeVar('T')
+
+IntMatrix = List[List[int]]
 
 
 def initialize_matrix(fill: T, row: int, col: int = None) -> List[List[T]]:
