@@ -1,5 +1,7 @@
 pre-commit:
   parallel: true
   commands:
+    style:
+      run: make check-coding-style
     test:
       run: make test

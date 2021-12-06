@@ -20,7 +20,7 @@ default:
 # have all shell commands executed in a single shell
 .ONESHELL:
 
-default: test
+default: check
 
 clean:
 	@find . -type f -name "*.pyc" -delete
@@ -35,11 +35,14 @@ configure: clean
 	fi
 
 check-coding-style: configure
+	@echo "📝 Check style..."
 	$(PEP8) $(PACKAGE)
 	$(PYLINT) -E $(PACKAGE)
 
-test: check-coding-style
+test: configure
 	@echo "💫 Running unit tests..."
 	$(PYTEST)
 
-.PHONY: clean configure check-coding-style test
+check: check-coding-style test
+
+.PHONY: clean configure check-coding-style test check
