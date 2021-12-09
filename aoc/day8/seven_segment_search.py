@@ -70,8 +70,68 @@ Because the digits 1, 4, 7, and 8 each use a unique number of segments, you shou
 of signals correspond to those digits. Counting only digits in the output values (the part after | on each line), in
 the above example, there are 26 instances of digits that use a unique number of segments (highlighted above).
 In the output values, how many times do digits 1, 4, 7, or 8 appear?
+
+--- Part Two ---
+
+Through a little deduction, you should now be able to determine the remaining digits. Consider again the first example
+above:
+
+acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab |
+cdfeb fcadb cdfeb cdbaf
+
+After some careful analysis, the mapping between signal wires and segments only make sense in the following
+configuration:
+
+ dddd
+e    a
+e    a
+ ffff
+g    b
+g    b
+ cccc
+
+So, the unique signal patterns would correspond to the following digits:
+
+    acedgfb: 8
+    cdfbe: 5
+    gcdfa: 2
+    fbcad: 3
+    dab: 7
+    cefabd: 9
+    cdfgeb: 6
+    eafb: 4
+    cagedb: 0
+    ab: 1
+
+Then, the four digits of the output value can be decoded:
+
+    cdfeb: 5
+    fcadb: 3
+    cdfeb: 5
+    cdbaf: 3
+
+Therefore, the output value for this entry is 5353.
+Following this same process for each entry in the second, larger example above, the output value of each entry can be
+determined:
+
+    fdgacbe cefdb cefbgd gcbe: 8394
+    fcgedb cgb dgebacf gc: 9781
+    cg cg fdcagb cbg: 1197
+    efabcd cedba gadfec cb: 9361
+    gecf egdcabf bgf bfgea: 4873
+    gebdcfa ecba ca fadegcb: 8418
+    cefg dcbef fcge gbcadfe: 4548
+    ed bcgafe cdgba cbgef: 1625
+    gbdfcae bgc cg cgb: 8717
+    fgae cfgab fg bagce: 4315
+
+Adding all of the output values in this larger example produces 61229.
+For each entry, determine all of the wire/segment connections and decode the four-digit output values. What do you get
+if you add up all of the output values?
+
 """
-from typing import List, Tuple
+from collections import defaultdict
+from typing import List, Tuple, Dict, Set, Callable, Optional
 
 
 def count_digit_part1(signals_and_outputs: List[Tuple[List[str], List[str]]]) -> int:
@@ -83,3 +143,80 @@ def count_digit_part1(signals_and_outputs: List[Tuple[List[str], List[str]]]) ->
                 res += 1
 
     return res
+
+
+def decode_outputs(signals_and_outputs_list: List[Tuple[List[str], List[str]]]) -> int:
+    return sum((
+        _decode_one_sample(signals_and_outputs)
+        for signals_and_outputs in signals_and_outputs_list
+    ))
+
+
+def _decode_one_sample(signals_and_outputs: Tuple[List[str], List[str]]) -> int:
+    """
+    we now that:
+    1 is len 2
+    4 is len 4
+    7 is len 3
+    8 is len 7
+
+    Then:
+    0 is len 6 ---
+    2 is len 5
+    3 is len 5
+    5 is len 5
+    6 is len 6 ---
+    9 is len 6 ---
+
+    - 9 can be found as it is len 6 and containing all letters from 4 (and we have candidates for top and bottom)
+    - then we can do 7|4 and do the intersection with 9. The letter not present is bottom.
+    => So we know what is bottom and top
+    - we can discover 0 and 6 if we do an intersection between with 7 and the two letters (not 9) having len 6,
+    the one not having any difference is 0 and the other one is 6.
+    """
+    signals, outputs = signals_and_outputs
+
+    # first sort signals by length
+    signals_by_length: Dict[int, Set[frozenset[str]]] = defaultdict(set)
+    for signal in signals:
+        signals_by_length[len(signal)].add(frozenset(signal))
+
+    numbers: List[frozenset[str]] = [frozenset()] * 10
+
+    numbers[1] = signals_by_length[2].pop()
+    numbers[4] = signals_by_length[4].pop()
+    numbers[7] = signals_by_length[3].pop()
+    numbers[8] = signals_by_length[7].pop()
+
+    numbers[9] = _pop_signal(signals_by_length[6], lambda s: len(numbers[4] - s) == 0)
+    numbers[0] = _pop_signal(signals_by_length[6], lambda s: len(numbers[7] - s) == 0)
+    numbers[6] = signals_by_length[6].pop()
+
+    numbers[3] = _pop_signal(signals_by_length[5], lambda s: len(numbers[7] - s) == 0)
+    numbers[5] = _pop_signal(signals_by_length[5], lambda s: len(numbers[4] - numbers[1] - s) == 0)
+    numbers[2] = signals_by_length[5].pop()
+
+    val = 0
+    for output in outputs:
+        lookup = frozenset(output)
+        for n, number in enumerate(numbers):
+            if number == lookup:
+                val *= 10
+                val += n
+
+    return val
+
+
+def _pop_signal(signals: Set[frozenset[str]],
+                predicate: Callable[[frozenset[str]], bool]) -> frozenset[str]:
+    found = None
+    for signal in signals:
+        if predicate(signal):
+            found = signal
+            break
+
+    if found:
+        signals.remove(found)
+        return found
+
+    raise ValueError(f'Unable to find signal in signals %s' % signals)
