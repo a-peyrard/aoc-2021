@@ -2,7 +2,7 @@ from typing import Iterable, List
 
 from hamcrest import assert_that, equal_to
 
-from aoc.day9.smoke_basin import count_low_point
+from aoc.day9.smoke_basin import count_low_point, find_largest_basins
 from aoc.util.input import parse_input_file
 
 
@@ -47,3 +47,34 @@ class TestSmokeBasin:
 
         # THEN
         assert_that(res, equal_to(570))
+
+    def test_should_find_basins_for_given_sample(self):
+        # GIVEN
+        matrix = TestSmokeBasin._parse_input(
+            lines="""2199943210
+3987894921
+9856789892
+8767896789
+9899965678
+""".splitlines(keepends=True)
+        )
+
+        # WHEN
+        res = find_largest_basins(matrix)
+
+        # THEN
+        assert_that(res, equal_to(1134))
+
+    def test_should_find_basins_for_input(self):
+        # GIVEN
+        matrix = parse_input_file(
+            origin=__file__,
+            filename='input.txt',
+            callback=TestSmokeBasin._parse_input
+        )
+
+        # WHEN
+        res = find_largest_basins(matrix)
+
+        # THEN
+        assert_that(res, equal_to(899392))

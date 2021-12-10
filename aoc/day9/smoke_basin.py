@@ -25,7 +25,53 @@ The risk level of a low point is 1 plus its height. In the above example, the ri
  and 6. The sum of the risk levels of all low points in the heightmap is therefore 15.
 Find all of the low points on your heightmap. What is the sum of the risk levels of all low points on your heightmap?
 
+--- Part Two ---
+
+Next, you need to find the largest basins so you know what areas are most important to avoid.
+A basin is all locations that eventually flow downward to a single low point. Therefore, every low point has a basin,
+although some basins are very small. Locations of height 9 do not count as being in any basin, and all other locations
+will always be part of exactly one basin.
+The size of a basin is the number of locations within the basin, including the low point. The example above has four
+basins.
+
+The top-left basin, size 3:
+
+2199943210
+3987894921
+9856789892
+8767896789
+9899965678
+
+The top-right basin, size 9:
+
+2199943210
+3987894921
+9856789892
+8767896789
+9899965678
+
+The middle basin, size 14:
+
+2199943210
+3987894921
+9856789892
+8767896789
+9899965678
+
+The bottom-right basin, size 9:
+
+2199943210
+3987894921
+9856789892
+8767896789
+9899965678
+
+Find the three largest basins and multiply their sizes together. In the above example, this is 9 * 14 * 9 = 1134.
+What do you get if you multiply together the sizes of the three largest basins?
+
+
 """
+from math import prod
 from typing import List
 
 
@@ -54,3 +100,27 @@ def _is_low_point(value: int, matrix: List[List[int]], y, x):
             return False
 
     return True
+
+
+def find_largest_basins(matrix: List[List[int]]) -> int:
+    basins = []
+    for row_idx, row in enumerate(matrix):
+        for col_idx, val in enumerate(row):
+            if _is_low_point(val, matrix, row_idx, col_idx):
+                basins.append(_find_basin(matrix, row_idx, col_idx))
+
+    return prod(sorted(basins)[-3:])
+
+
+def _find_basin(matrix, y, x):
+    if not 0 <= y < len(matrix) or not 0 <= x < len(matrix[y]) or matrix[y][x] == 9:
+        return 0
+
+    size = 1
+    matrix[y][x] = 9
+    size += _find_basin(matrix, y, x - 1)
+    size += _find_basin(matrix, y, x + 1)
+    size += _find_basin(matrix, y - 1, x)
+    size += _find_basin(matrix, y + 1, x)
+
+    return size
