@@ -39,10 +39,15 @@ check-coding-style: configure
 	$(PEP8) $(PACKAGE)
 	$(PYLINT) -E $(PACKAGE)
 
+fast-test: configure
+	@echo "💫 Running fast unit tests..."
+	$(PYTEST) -v -m "not slow"
+
 test: configure
 	@echo "💫 Running unit tests..."
 	$(PYTEST)
 
+
 check: check-coding-style test
 
-.PHONY: clean configure check-coding-style test check
+.PHONY: clean configure check-coding-style fast-test test check

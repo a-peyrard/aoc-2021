@@ -110,6 +110,53 @@ start-RW
 
 How many paths through this cave system are there that visit small caves at most once?
 
+--- Part Two ---
+
+After reviewing the available paths, you realize you might have time to visit a single small cave twice. Specifically, big caves can be visited any number of times, a single small cave can be visited at most twice, and the remaining small caves can be visited at most once. However, the caves named start and end can only be visited exactly once each: once you leave the start cave, you may not return to it, and once you reach the end cave, the path must end immediately.
+Now, the 36 possible paths through the first example above are:
+
+start,A,b,A,b,A,c,A,end
+start,A,b,A,b,A,end
+start,A,b,A,b,end
+start,A,b,A,c,A,b,A,end
+start,A,b,A,c,A,b,end
+start,A,b,A,c,A,c,A,end
+start,A,b,A,c,A,end
+start,A,b,A,end
+start,A,b,d,b,A,c,A,end
+start,A,b,d,b,A,end
+start,A,b,d,b,end
+start,A,b,end
+start,A,c,A,b,A,b,A,end
+start,A,c,A,b,A,b,end
+start,A,c,A,b,A,c,A,end
+start,A,c,A,b,A,end
+start,A,c,A,b,d,b,A,end
+start,A,c,A,b,d,b,end
+start,A,c,A,b,end
+start,A,c,A,c,A,b,A,end
+start,A,c,A,c,A,b,end
+start,A,c,A,c,A,end
+start,A,c,A,end
+start,A,end
+start,b,A,b,A,c,A,end
+start,b,A,b,A,end
+start,b,A,b,end
+start,b,A,c,A,b,A,end
+start,b,A,c,A,b,end
+start,b,A,c,A,c,A,end
+start,b,A,c,A,end
+start,b,A,end
+start,b,d,b,A,c,A,end
+start,b,d,b,A,end
+start,b,d,b,end
+start,b,end
+
+The slightly larger example above now has 103 paths through it, and the even larger example now has 3509 paths through
+it.
+Given these new rules, how many paths through this cave system are there?
+
+
 """
 from collections import defaultdict
 from typing import Tuple, List, Dict, Set
@@ -120,16 +167,17 @@ DEBUG = False
 
 class Path:
     @staticmethod
-    def initialize(initial: str) -> "Path":
-        return Path(["start", initial])
+    def initialize(initial: str, joker: bool) -> "Path":
+        return Path(["start", initial], joker)
 
-    def __init__(self, path: List[str]):
+    def __init__(self, path: List[str], joker: bool):
         self._path = path
         self._seen = set(path)
         self._current = path[-1]
+        self._joker = joker
 
-    def push(self, vertex: str) -> "Path":
-        new = Path(list(self._path))
+    def push(self, vertex: str, joker_consumed: bool = False) -> "Path":
+        new = Path(list(self._path), joker=self._joker and not joker_consumed)
         new._path.append(vertex)
         new._seen.add(vertex)
         new._current = vertex
@@ -151,27 +199,37 @@ class Path:
     def finished(self) -> bool:
         return self._current == "end"
 
+    @property
+    def joker(self) -> bool:
+        return self._joker
+
     def __repr__(self):
         return str(self._path)
 
 
-def count_paths(edges: List[Tuple[str, str]]):
+def count_paths(edges: List[Tuple[str, str]], joker: bool = False):
     adjacency_list = _build_adjacency_list(edges)
 
     paths_queue: List[Path] = [
-        Path.initialize(successor)
+        Path.initialize(successor, joker)
         for successor in adjacency_list["start"]
     ]
     paths: List[Path] = []
     while len(paths_queue) > 0:
         path = paths_queue.pop(0)
         for successor in adjacency_list[path.current]:
-            if successor.isupper() or successor not in path.seen:
-                new_path = path.push(successor)
-                if new_path.finished:
-                    paths.append(new_path)
+            joker_consumed = False
+            if successor.islower() and successor in path.seen:
+                if path.joker:
+                    joker_consumed = True
                 else:
-                    paths_queue.append(new_path)
+                    continue
+
+            new_path = path.push(successor, joker_consumed)
+            if new_path.finished:
+                paths.append(new_path)
+            else:
+                paths_queue.append(new_path)
 
     DEBUG and _print_paths(paths)
     return len(paths)
@@ -180,13 +238,15 @@ def count_paths(edges: List[Tuple[str, str]]):
 def _build_adjacency_list(edges: List[Tuple[str, str]]) -> Dict[str, List[str]]:
     adjacency_list = defaultdict(list)
     for from_vertex, to_vertex in edges:
-        adjacency_list[from_vertex].append(to_vertex)
-        adjacency_list[to_vertex].append(from_vertex)
+        if to_vertex != "start":
+            adjacency_list[from_vertex].append(to_vertex)
+        if from_vertex != "start":
+            adjacency_list[to_vertex].append(from_vertex)
 
     return adjacency_list
 
 
 def _print_paths(paths: List[Path]):
     print(f'\nAll paths found ({len(paths)}): \n')
-    for path in paths:
-        print(path.path)
+    for path in sorted((repr(p) for p in paths)):
+        print(path)
