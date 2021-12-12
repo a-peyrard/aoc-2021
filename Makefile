@@ -41,7 +41,7 @@ check-coding-style: configure
 
 fast-test: configure
 	@echo "💫 Running fast unit tests..."
-	$(PYTEST) -v -m "not slow"
+	$(PYTEST) -n 2 -v -m "not slow"
 
 test: configure
 	@echo "💫 Running unit tests..."

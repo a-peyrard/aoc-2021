@@ -2,3 +2,4 @@ pycodestyle
 pyhamcrest
 pylint
 pytest
+pytest-xdist
