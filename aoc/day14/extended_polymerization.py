@@ -56,45 +56,55 @@ element (B, 1749) and subtracting the quantity of the least common element (H, 1
 Apply 10 steps of pair insertion to the polymer template and find the most and least common elements in the result. What
  do you get if you take the quantity of the most common element and subtract the quantity of the least common element?
 
+--- Part Two ---
+
+The resulting polymer isn't nearly strong enough to reinforce the submarine. You'll need to run more steps of the pair
+insertion process; a total of 40 steps should do it.
+In the above example, the most common element is B (occurring 2192039569602 times) and the least common element is H
+(occurring 3849876073 times); subtracting these produces 2188189693529.
+Apply 40 steps of pair insertion to the polymer template and find the most and least common elements in the result.
+What do you get if you take the quantity of the most common element and subtract the quantity of the least common
+element?
+
+
+
 """
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, Tuple
 
 
 def generate_template(initial: str,
                       rules: Dict[str, str],
                       nb_steps: int) -> int:
 
-    template = initial
+    known_generation: Dict[str, Tuple[str, str]] = {}
+
+    # count the pairs for the initial template
+    pairs: Dict[str, int] = defaultdict(int)
+    previous = initial[0]
+    for char in initial[1:]:
+        current_pair = previous + char
+        pairs[current_pair] += 1
+        previous = char
+
     for step in range(nb_steps):
-        previous = initial[0]
-        new_template = previous
-        for char in template[1:]:
-            char_to_add = rules[previous + char]
-            new_template += char_to_add + char
-            previous = char
-        template = new_template
-        count_characters = defaultdict(int)
-        for c in template:
-            count_characters[c] += 1
-        values = sorted(
-            (
-                (count, char)
-                for char, count in count_characters.items()
-            ),
-            key=lambda t: t[0]
-        )
-        print(f'after step {step + 1}, template = {template}')
-        print(f'Number of occurrence of initial in template is: {template.count(initial)}')
-        print(f'values: {values}')
+        new_pairs = defaultdict(int)
+        for pair, occurrences in pairs.items():
+            pair1, pair2 = _generate_pairs(pair, known_generation, rules)
+            pairs[pair] = 0
+            new_pairs[pair1] += occurrences
+            new_pairs[pair2] += occurrences
+        pairs = new_pairs
 
     count_characters = defaultdict(int)
-    for c in template:
-        count_characters[c] += 1
+    for pair, occurrences in pairs.items():
+        count_characters[pair[0]] += occurrences
+        count_characters[pair[1]] += occurrences
 
+    # divide by 2 as all letters are counted twice, except for the first and last letter
     values = sorted(
         (
-            (count, char)
+            (int(count / 2) + (1 if char == initial[0] or char == initial[-1] else 0), char)
             for char, count in count_characters.items()
         ),
         key=lambda t: t[0]
@@ -104,5 +114,18 @@ def generate_template(initial: str,
     min_occurrence, min_char = values[0]
     print(f'char {max_char} found {max_occurrence} times')
     print(f'char {min_char} found {min_occurrence} times')
+    print(f'values {values}')
 
     return max_occurrence - min_occurrence
+
+
+def _generate_pairs(pair: str,
+                    known_generations: Dict[str, Tuple[str, str]],
+                    rules: Dict[str, str]) -> Tuple[str, str]:
+    generated = known_generations.get(pair)
+    if not generated:
+        char_to_add = rules[pair]
+        generated = (pair[0] + char_to_add, char_to_add + pair[1])
+        known_generations[pair] = generated
+
+    return generated

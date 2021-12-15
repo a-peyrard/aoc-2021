@@ -1,9 +1,7 @@
-from typing import Iterable, List, Tuple, Dict
+from typing import Iterable, Tuple, Dict
 
-import pytest
 from hamcrest import assert_that, equal_to
 
-from aoc.day12.passage_pathing import count_paths
 from aoc.day14.extended_polymerization import generate_template
 from aoc.util.input import parse_input_file
 
@@ -51,7 +49,7 @@ CN -> C
         # THEN
         assert_that(res, equal_to(1588))
 
-    def test_should_test_should_generate_template_for_for_input(self):
+    def test_should_generate_template_for_for_input(self):
         # GIVEN
         template, rules = parse_input_file(
             origin=__file__,
@@ -64,3 +62,47 @@ CN -> C
 
         # THEN
         assert_that(res, equal_to(2112))
+
+    def test_should_generate_template_40_steps_for_given_sample(self):
+        # GIVEN
+        template, rules = TestExtendedPolymerization._parse_input(
+            lines="""NNCB
+
+CH -> B
+HH -> N
+CB -> H
+NH -> C
+HB -> C
+HC -> B
+HN -> C
+NN -> C
+BH -> H
+NC -> B
+NB -> B
+BN -> B
+BB -> N
+BC -> B
+CC -> N
+CN -> C
+""".splitlines(keepends=True)
+        )
+
+        # WHEN
+        res = generate_template(template, rules, nb_steps=40)
+
+        # THEN
+        assert_that(res, equal_to(2188189693529))
+
+    def test_should_generate_template_40_steps_for_for_input(self):
+        # GIVEN
+        template, rules = parse_input_file(
+            origin=__file__,
+            filename='input.txt',
+            callback=TestExtendedPolymerization._parse_input
+        )
+
+        # WHEN
+        res = generate_template(template, rules, nb_steps=40)
+
+        # THEN
+        assert_that(res, equal_to(3243771149914))
