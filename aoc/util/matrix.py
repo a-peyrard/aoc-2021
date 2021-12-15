@@ -14,3 +14,10 @@ def initialize_matrix(fill: T, row: int, col: int = None) -> List[List[T]]:
         ]
         for _ in range(row)
     ]
+
+
+def serialize_matrix(matrix: List[List[int]]) -> str:
+    return "\n".join((
+        " ".join(map(str, row))
+        for row in matrix
+    ))
