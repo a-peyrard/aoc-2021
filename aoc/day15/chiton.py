@@ -41,7 +41,10 @@ The total risk of this path is 40 (the starting position is never entered, so it
 What is the lowest total risk of any path from the top left to the bottom right?
 
 """
-from typing import List, NamedTuple
+import pprint
+from collections import defaultdict
+from heapq import heappush, heappop
+from typing import List, NamedTuple, Any, Tuple
 
 from aoc.util.matrix import serialize_matrix
 
@@ -64,67 +67,109 @@ def shorted_path(matrix: List[List[int]]) -> int:
     height = len(matrix)
     width = len(matrix[0])
 
-    paths = [Coordinate(0, 0)]
-    while len(paths) > 0:
-        c = paths.pop(0)
+    target = Coordinate(width - 1, height - 1)
+
+    to_analyze = PriorityQueue()
+    to_analyze.push(Coordinate(0, 0), priority=0)
+    while to_analyze.length() > 0:
+        c = to_analyze.pop()
+        if c == target:
+            # this is our target
+            break
+
         from_cost = costs[c.y][c.x]
         if c.y < height - 1:
             bottom = Coordinate(c.x, c.y + 1)
-            new_assignment = _assign_cost(
+            new_assignment, cost = _assign_cost(
                 costs=costs,
                 current_coordinate=bottom,
                 current_weight=matrix[bottom.y][bottom.x],
                 from_cost=from_cost
             )
             if new_assignment:
-                paths.append(bottom)
+                to_analyze.push(bottom, priority=cost)
 
         if c.y > 0:
             up = Coordinate(c.x, c.y - 1)
-            new_assignment = _assign_cost(
+            new_assignment, cost = _assign_cost(
                 costs=costs,
                 current_coordinate=up,
                 current_weight=matrix[up.y][up.x],
                 from_cost=from_cost
             )
             if new_assignment:
-                paths.append(up)
+                to_analyze.push(up, priority=cost)
 
         if c.x < width - 1:
             right = Coordinate(c.x + 1, c.y)
-            new_assignment = _assign_cost(
+            new_assignment, cost = _assign_cost(
                 costs=costs,
                 current_coordinate=right,
                 current_weight=matrix[right.y][right.x],
                 from_cost=from_cost
             )
             if new_assignment:
-                paths.append(right)
+                to_analyze.push(right, priority=cost)
 
         if c.x > 0:
             left = Coordinate(c.x - 1, c.y)
-            new_assignment = _assign_cost(
+            new_assignment, cost = _assign_cost(
                 costs=costs,
                 current_coordinate=left,
                 current_weight=matrix[left.y][left.x],
                 from_cost=from_cost
             )
             if new_assignment:
-                paths.append(left)
+                to_analyze.push(left, priority=cost)
 
     DEBUG and print(f'\n\ncost: \n{serialize_matrix(costs)}\n\n')
+
     return costs[-1][-1]
 
 
 def _assign_cost(costs: List[List[int]],
                  current_coordinate: Coordinate,
                  current_weight: int,
-                 from_cost: int) -> bool:
+                 from_cost: int) -> Tuple[bool, int]:
     existing_cost = costs[current_coordinate.y][current_coordinate.x]
     current_cost = from_cost + current_weight
     new_assignment = existing_cost == -1
     if new_assignment or existing_cost > current_cost:
         costs[current_coordinate.y][current_coordinate.x] = current_cost
-        return True
+        return True, current_cost
 
-    return False
+    return False, -1
+
+
+class PriorityQueue:
+    """
+    https://docs.python.org/3/library/heapq.html
+    """
+    REMOVED = '<removed-task>'  # placeholder for a removed task
+
+    def __init__(self):
+        self._pq = []
+        self._entry_finder = {}
+
+    def push(self, value: Any, priority=0):
+        if value in self._entry_finder:
+            self._remove_task(value)
+        entry = (priority, value)
+        self._entry_finder[value] = entry
+        heappush(self._pq, entry)
+
+    def _remove_task(self, value: Any):
+        entry = self._entry_finder.pop(value)
+        entry[-1] = PriorityQueue.REMOVED
+
+    def pop(self) -> Any:
+        while self._pq:
+            priority, value = heappop(self._pq)
+            if value is not PriorityQueue.REMOVED:
+                del self._entry_finder[value]
+                return value
+
+        raise KeyError('pop from an empty priority queue')
+
+    def length(self) -> int:
+        return len(self._entry_finder)
