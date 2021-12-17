@@ -114,15 +114,57 @@ Here are a few more examples of hexadecimal-encoded transmissions:
 Decode the structure of your hexadecimal-encoded BITS transmission; what do you get if you add up the version numbers
 in all packets?
 
+--- Part Two ---
+
+Now that you have the structure of your transmission decoded, you can calculate the value of the expression it
+represents.
+Literal values (type ID 4) represent a single number as described above. The remaining type IDs are more interesting:
+
+    Packets with type ID 0 are sum packets - their value is the sum of the values of their sub-packets. If they only
+    have a single sub-packet, their value is the value of the sub-packet.
+    Packets with type ID 1 are product packets - their value is the result of multiplying together the values of their
+    sub-packets. If they only have a single sub-packet, their value is the value of the sub-packet.
+    Packets with type ID 2 are minimum packets - their value is the minimum of the values of their sub-packets.
+    Packets with type ID 3 are maximum packets - their value is the maximum of the values of their sub-packets.
+    Packets with type ID 5 are greater than packets - their value is 1 if the value of the first sub-packet is greater
+    than the value of the second sub-packet; otherwise, their value is 0. These packets always have exactly two
+    sub-packets.
+    Packets with type ID 6 are less than packets - their value is 1 if the value of the first sub-packet is less than
+    the value of the second sub-packet; otherwise, their value is 0. These packets always have exactly two sub-packets.
+    Packets with type ID 7 are equal to packets - their value is 1 if the value of the first sub-packet is equal to the
+    value of the second sub-packet; otherwise, their value is 0. These packets always have exactly two sub-packets.
+
+Using these rules, you can now work out the value of the outermost packet in your BITS transmission.
+
+For example:
+
+    C200B40A82 finds the sum of 1 and 2, resulting in the value 3.
+    04005AC33890 finds the product of 6 and 9, resulting in the value 54.
+    880086C3E88112 finds the minimum of 7, 8, and 9, resulting in the value 7.
+    CE00C43D881120 finds the maximum of 7, 8, and 9, resulting in the value 9.
+    D8005AC2A8F0 produces 1, because 5 is less than 15.
+    F600BC2D8F produces 0, because 5 is not greater than 15.
+    9C005AC2F8F0 produces 0, because 5 is not equal to 15.
+    9C0141080250320F1802104A08 produces 1, because 1 + 3 = 2 * 2.
+
+What do you get if you evaluate the expression represented by your hexadecimal-encoded BITS transmission?
+
+
 """
 from enum import Enum
-from math import ceil
+from math import ceil, prod
 from typing import List, Optional, Tuple
 
 
 class PacketType(Enum):
     literal = 4
-    operator = 0
+    sum = 0
+    product = 1
+    minimum = 2
+    maximum = 3
+    gt = 5
+    lt = 6
+    eq = 7
 
 
 class Packet:
@@ -132,14 +174,14 @@ class Packet:
                  value: Optional[int] = None):
         self._type = packet_type
         self._version = version
-        self._sub_packet = []
+        self._sub_packets = []
         self._value = value
 
     def add_sub_packet(self, packet: "Packet"):
-        self._sub_packet.append(packet)
+        self._sub_packets.append(packet)
 
     def versions(self) -> int:
-        return self._version + sum(map(lambda p: p.versions(), self._sub_packet))
+        return self._version + sum(map(lambda p: p.versions(), self._sub_packets))
 
     @property
     def version(self) -> int:
@@ -152,6 +194,31 @@ class Packet:
     @property
     def value(self) -> Optional[int]:
         return self._value
+
+    def eval(self) -> int:
+        if self._type == PacketType.literal:
+            return self._value
+        elif self._type == PacketType.sum:
+            return sum(map(Packet.eval, self._sub_packets))
+        elif self._type == PacketType.product:
+            return prod(map(Packet.eval, self._sub_packets))
+        elif self._type == PacketType.minimum:
+            return min(map(Packet.eval, self._sub_packets))
+        elif self._type == PacketType.maximum:
+            return max(map(Packet.eval, self._sub_packets))
+
+        if len(self._sub_packets) != 2:
+            raise ValueError(f"Expected to have 2 sub packet for comp operations, but got: {len(self._sub_packets)}")
+
+        packet0, packet1 = self._sub_packets
+        if self._type == PacketType.gt:
+            return 1 if packet0.eval() > packet1.eval() else 0
+        elif self._type == PacketType.lt:
+            return 1 if packet0.eval() < packet1.eval() else 0
+        elif self._type == PacketType.eq:
+            return 1 if packet0.eval() == packet1.eval() else 0
+
+        raise ValueError(f"Unknown packet type: {self._type}")
 
 
 class DataFrame:
@@ -226,6 +293,11 @@ def sum_versions(data_frame: str) -> int:
     return sum(map(lambda p: p.versions(), packets))
 
 
+def evaluate(data_frame: str) -> int:
+    packets = _parse_data_frame(DataFrame(data_frame))
+    return packets[0].eval()
+
+
 def _parse_data_frame(data: DataFrame) -> List[Packet]:
     packets = []
     while data:
@@ -241,7 +313,7 @@ def _parse_packet(data: DataFrame) -> Tuple[Packet, int]:
     if packet_type == PacketType.literal.value:
         return _parse_literal(version, data)
     else:
-        return _parse_operator(version, data)
+        return _parse_operator(version, packet_type, data)
 
 
 MASK_LITERAL: int = (1 << 4) - 1
@@ -268,9 +340,10 @@ def _parse_literal(version: int,
 
 
 def _parse_operator(version: int,
+                    packet_type: int,
                     data: DataFrame) -> Tuple[Packet, int]:
     packet = Packet(
-        packet_type=PacketType.operator,
+        packet_type=PacketType(packet_type),
         version=version
     )
     bits_parsed = 6

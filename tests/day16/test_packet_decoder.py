@@ -3,7 +3,7 @@ from typing import Iterable
 from hamcrest import assert_that, equal_to
 
 # noinspection PyProtectedMember
-from aoc.day16.packet_decoder import sum_versions, DataFrame, _parse_packet, PacketType
+from aoc.day16.packet_decoder import sum_versions, DataFrame, _parse_packet, PacketType, evaluate
 from aoc.util.input import parse_input_file
 
 
@@ -79,6 +79,100 @@ class TestPacketDecoder:
 
         # THEN
         assert_that(res, equal_to(967))
+
+    def test_should_evaluate_example_1(self):
+        # GIVEN
+        packet = "C200B40A82"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(3))
+
+    def test_should_evaluate_example_2(self):
+        # GIVEN
+        packet = "04005AC33890"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(54))
+
+    def test_should_evaluate_example_3(self):
+        # GIVEN
+        packet = "880086C3E88112"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(7))
+
+    def test_should_evaluate_example_4(self):
+        # GIVEN
+        packet = "CE00C43D881120"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(9))
+
+    def test_should_evaluate_example_5(self):
+        # GIVEN
+        packet = "D8005AC2A8F0"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(1))
+
+    def test_should_evaluate_example_6(self):
+        # GIVEN
+        packet = "F600BC2D8F"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(0))
+
+    def test_should_evaluate_example_7(self):
+        # GIVEN
+        packet = "9C005AC2F8F0"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(0))
+
+    def test_should_evaluate_example_8(self):
+        # GIVEN
+        packet = "9C0141080250320F1802104A08"
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(1))
+
+    def test_should_evaluate_input(self):
+        # GIVEN
+        packet = parse_input_file(
+            origin=__file__,
+            filename='input.txt',
+            callback=TestPacketDecoder._parse_input
+        )
+
+        # WHEN
+        res = evaluate(packet)
+
+        # THEN
+        assert_that(res, equal_to(12883091136209))
 
 
 class TestDataFrame:
