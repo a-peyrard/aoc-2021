@@ -8,7 +8,7 @@ TEST_PACKAGE := tests
 PYTHON_PATH := $(shell pwd)/${PACKAGE}
 PYTEST := @env PYTHONPATH=$(PYTHONPATH) PYTEST=1 py.test
 PYLINT := @env PYTHONPATH=$(PYTHONPATH) pylint --disable=I0011 --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
-PEP8 := @env PYTHONPATH=$(PYTHONPATH) pycodestyle --repeat --ignore=E202,E501,E402
+PEP8 := @env PYTHONPATH=$(PYTHONPATH) pycodestyle --repeat --ignore=E202,E501,E402,W503
 
 default:
 	@echo "Known make targets:"
